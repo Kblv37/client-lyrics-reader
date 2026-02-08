@@ -227,7 +227,6 @@
       width: 100%;
       max-width: calc(var(--max-lyrics-width) - 40px);
       padding: 0 4%;
-      padding-bottom: clamp(80px, 16vh, 150px);
       box-sizing: border-box;
       height: 100%;
       overflow-y: auto;
@@ -280,6 +279,11 @@
       white-space: pre-wrap;
       /* NO transitions, NO transforms, NO hover/active styles */
     }
+
+    body:not(.full-mode) .line:last-child {
+      margin-bottom: clamp(120px, 20vh, 220px);
+    }
+
 
     body.light-theme .line {
       color: rgba(31, 35, 38, 0.95);
