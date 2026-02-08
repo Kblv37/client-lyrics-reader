@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <!-- Важно: viewport-fit=cover для iOS safe-area -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Lyrics | rhythmRetreat</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --header-height: 84px;
+            --max-lyrics-width: 980px;
+            --side-gap: clamp(16px, 6vw, 120px);
+            --transition: 220ms cubic-bezier(.22, .9, .32, 1);
+
+            /* контролируемый spacer (высота пустого места снизу) */
+            --bottom-spacer: clamp(120px, 20vh, 240px);
+        }
+
+        @media (max-width:720px) {
+            :root {
+                --header-height: 60px;
+                --max-lyrics-width: 720px;
+                --side-gap: 16px;
+                --bottom-spacer: clamp(100px, 20vh, 180px);
+            }
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+
+            overscroll-behavior-y: contain;
+            touch-action: pan-y;
+
+            background: linear-gradient(180deg, #070707 0%, #121212 60%);
+            color: #fff;
+            transition: background var(--transition), color var(--transition);
+            scroll-behavior: smooth;
+            background-attachment: fixed;
+
+            /* safe-area padding for bottom UI (iOS) */
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        body.light-theme {
+            background: linear-gradient(180deg, #f6f7f8 0%, #efeef0 60%);
+            color: #1f2326;
+        }
+
+        /* Vignette */
+        .vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            mix-blend-mode: multiply;
+            background-image:
+                radial-gradient(60% 40% at 50% 40%, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 18%),
+                radial-gradient(80% 60% at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.45) 55%, rgba(0, 0, 0, 0.85) 100%),
+                linear-gradient(180deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.22));
+            transition: opacity .24s ease;
+        }
+
+        body.light-theme .vignette {
+            background-image:
+                radial-gradient(60% 40% at 50% 40%, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0) 18%),
+                radial-gradient(80% 60% at 50% 50%, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0.95) 100%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.06));
+            mix-blend-mode: normal;
+            opacity: .95;
+        }
+
+        .vignette.reduced {
+            opacity: .14;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px clamp(10px, 2vw, 20px);
+            box-sizing: border-box;
+            backdrop-filter: blur(6px);
+            background: linear-gradient(to bottom, rgba(7, 7, 7, 0.96), rgba(7, 7, 7, 0.55), rgba(7, 7, 7, 0));
+            transition: background var(--transition), padding var(--transition);
+        }
+
+        body.light-theme .header {
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0));
+        }
+
+        .header-inner {
+            width: 100%;
+            max-width: var(--max-lyrics-width);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .meta-left {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .marquee {
+            overflow: hidden;
+            white-space: nowrap;
+            display: block;
+        }
+
+        .marquee-track {
+            display: inline-block;
+            will-change: transform;
+        }
+
+        #title {
+            font-weight: 800;
+            font-size: clamp(16px, 2.4vw, 22px);
+            line-height: 1;
+            color: rgba(255, 255, 255, 0.92);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin: 0;
+        }
+
+        body.light-theme #title {
+            color: rgba(31, 35, 38, 0.92);
+        }
+
+        #artist {
+            margin-top: 4px;
+            font-weight: 600;
+            font-size: clamp(12px, 1.4vw, 14px);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        body.light-theme #artist {
+            color: rgba(31, 35, 38, 0.75);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 8px 10px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            backdrop-filter: blur(3px);
+        }
+
+        body.light-theme .btn {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        /* Viewer / layout */
+        .viewer {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            padding-top: calc(var(--header-height) + 8px);
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-left: var(--side-gap);
+            padding-right: var(--side-gap);
+        }
+
+        /* lyrics-wrap: используем min-height, и в Lyrics Mode выстраиваем flex-start + padding-top (визуальный центр)
+       Это предотвращает обрезание нижней части и даёт место для spacer */
+        .lyrics-wrap {
+            width: 100%;
+            max-width: var(--max-lyrics-width);
+            min-height: calc(100vh - var(--header-height) - 36px);
+            display: flex;
+            align-items: flex-start;
+            /* flex-start по умолчанию — безопасно */
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        /* В Lyrics Mode (по умолчанию) мы хотим визуальный центр — делаем через padding-top */
+        body:not(.full-mode) .lyrics-wrap {
+            padding-top: 12vh;
+        }
+
+        .lyrics {
+            width: 100%;
+            max-width: calc(var(--max-lyrics-width) - 40px);
+            padding: 0 4%;
+            box-sizing: border-box;
+            /* height:100% — не нужно; мы позволяем элементу иметь собственный scroll */
+            max-height: calc(100vh - var(--header-height) - 36px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            text-align: center;
+
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+
+            /* небольшой внутренний запас сверху/снизу чтобы spacer не прилипал */
+            padding-top: 6px;
+            /* keep a little padding bottom too (in addition to spacer) */
+            padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+        }
+
+        .lyrics::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
+        }
+
+        .lyrics {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .line {
+            display: block;
+            font-weight: 800;
+            font-size: clamp(20px, 5.8vw, 40px);
+            line-height: 1.7;
+            margin: 12px 0;
+            color: rgba(255, 255, 255, 0.98);
+            white-space: pre-wrap;
+        }
+
+        body.light-theme .line {
+            color: rgba(31, 35, 38, 0.95);
+        }
+
+        .line.empty {
+            height: 12px;
+            opacity: 0;
+        }
+
+        /* Spacer element (reliable) */
+        .lyrics-spacer {
+            display: block;
+            width: 100%;
+            height: var(--bottom-spacer);
+            flex-shrink: 0;
+        }
+
+        /* In full mode we want much smaller bottom spacer */
+        .full-mode .lyrics-spacer {
+            height: 28px;
+        }
+
+        /* Full mode adjustments */
+        .full-mode .viewer {
+            align-items: flex-start;
+            padding-top: calc(var(--header-height) + 18px);
+        }
+
+        .full-mode .lyrics-wrap {
+            min-height: calc(100vh - var(--header-height) - 36px);
+            margin: 22px 0;
+            align-items: flex-start;
+            padding-top: 0;
+        }
+
+        .full-mode .lyrics {
+            max-height: none;
+            height: auto;
+            overflow: visible;
+            text-align: left;
+            padding: 0 6%;
+        }
+
+        .full-mode .line {
+            font-weight: 600;
+            font-size: clamp(14px, 2.4vw, 18px);
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        /* marquee animation (desktop only) */
+        .marquee-track {
+            display: inline-block;
+            transform: translateX(0);
+        }
+
+        .marquee-active .marquee-track {
+            animation-name: marquee;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            animation-direction: alternate;
+            animation-duration: var(--marquee-duration, 8s);
+        }
+
+        @keyframes marquee {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(var(--marquee-distance, -40px));
+            }
+        }
+
+        @media (min-width:1400px) {
+            :root {
+                --max-lyrics-width: 980px;
+                --side-gap: clamp(60px, 12vw, 220px);
+            }
+        }
+
+        @media (min-width:1000px) and (max-width:1399px) {
+            :root {
+                --max-lyrics-width: 900px;
+            }
+        }
+
+        @media (max-width:719px) {
+            :root {
+                --max-lyrics-width: 720px;
+                --side-gap: 16px;
+                --header-height: 60px;
+            }
+
+            .line {
+                font-size: clamp(18px, 7.2vw, 34px);
+                line-height: 1.6;
+            }
+
+            #title {
+                font-size: 16px;
+            }
+        }
+
+        /* ensure no white gap on overscroll */
+        html,
+        body {
+            background-attachment: fixed;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="vignette" class="vignette" aria-hidden="true"></div>
+
+    <header class="header" role="banner" aria-hidden="false">
+        <div class="header-inner">
+            <div class="meta-left" id="metaLeft">
+                <div class="marquee" id="titleWrap">
+                    <div class="marquee-track" id="titleTrack"><span id="title">Загрузка...</span></div>
+                </div>
+                <div class="marquee" id="artistWrap">
+                    <div class="marquee-track" id="artistTrack"><span id="artist"></span></div>
+                </div>
+            </div>
+
+            <div class="controls" id="controls">
+                <button class="btn" id="themeToggle" title="Переключить тему">☀️</button>
+                <button class="btn" id="toggleView" aria-pressed="false">Показать весь текст</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="viewer" id="viewer" role="main" aria-live="polite">
+        <div class="lyrics-wrap">
+            <article id="lyrics" class="lyrics" role="article" aria-label="Текст песни"></article>
+        </div>
+    </main>
+
+    <script>
+        /* Полный рабочий JS: грузит TXT, парсит первые 2 строки, рендерит .line,
+           и ДОБАВЛЯЕТ надежный spacer .lyrics-spacer в конец (для нижнего поля).
+           Сохранены theme, full-mode, marquee, защитa от копирования и touch-фиксы. */
+
+        const lyricsEl = document.getElementById('lyrics');
+        const titleEl = document.getElementById('title');
+        const artistEl = document.getElementById('artist');
+        const titleWrap = document.getElementById('titleWrap');
+        const artistWrap = document.getElementById('artistWrap');
+        const titleTrack = document.getElementById('titleTrack');
+        const artistTrack = document.getElementById('artistTrack');
+        const toggleBtn = document.getElementById('toggleView');
+        const themeBtn = document.getElementById('themeToggle');
+        const bodyEl = document.body;
+        const htmlEl = document.documentElement;
+        const vignetteEl = document.getElementById('vignette');
+
+        const THEME_KEY = 'lyrics_theme';
+        let isFullMode = false;
+
+        /* Theme */
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                bodyEl.classList.add('light-theme');
+                themeBtn.textContent = '🌙';
+            } else {
+                bodyEl.classList.remove('light-theme');
+                themeBtn.textContent = '☀️';
+            }
+            try { localStorage.setItem(THEME_KEY, theme); } catch (e) { }
+            if (isFullMode) syncHtmlBackgroundWithBody();
+        }
+        (function initTheme() { let saved = null; try { saved = localStorage.getItem(THEME_KEY); } catch (e) { } applyTheme(saved === 'light' ? 'light' : 'dark'); })();
+        themeBtn.addEventListener('click', () => applyTheme(bodyEl.classList.contains('light-theme') ? 'dark' : 'light'));
+
+        /* Sync html background for full-mode */
+        function syncHtmlBackgroundWithBody() {
+            if (!isFullMode) { htmlEl.style.background = ''; return; }
+            const comp = getComputedStyle(bodyEl).background;
+            htmlEl.style.background = comp || '';
+        }
+
+        /* Full / Lyrics mode */
+        function setFullMode(on) {
+            isFullMode = !!on;
+            toggleBtn.setAttribute('aria-pressed', String(isFullMode));
+            toggleBtn.textContent = isFullMode ? 'Lyrics режим' : 'Показать весь текст';
+            if (isFullMode) {
+                bodyEl.classList.add('full-mode');
+                bodyEl.style.overflow = 'auto';
+                vignetteEl.classList.add('reduced');
+                syncHtmlBackgroundWithBody();
+            } else {
+                bodyEl.classList.remove('full-mode');
+                bodyEl.style.overflow = 'hidden';
+                vignetteEl.classList.remove('reduced');
+                htmlEl.style.background = '';
+                lyricsEl.scrollTop = 0;
+            }
+        }
+        toggleBtn.addEventListener('click', () => setFullMode(!isFullMode));
+
+        /* parse URL */
+        function getNameFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const raw = params.get('name');
+            if (raw && raw.trim()) return raw.trim();
+            const parts = location.pathname.split('/').filter(Boolean);
+            if (parts.length >= 2 && parts[0].toLowerCase() === 'music') return parts[parts.length - 1];
+            return null;
+        }
+        function prettyFromSlug(slug) {
+            if (!slug) return '';
+            return decodeURIComponent(slug).replace(/[-_]+/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+        }
+
+        /* touch protection (bounce lock) */
+        let touchStartY = 0;
+        function onTouchStart(e) { if (!e.touches || e.touches.length !== 1) return; touchStartY = e.touches[0].clientY; }
+        function onTouchMove(e) {
+            if (!e.touches || e.touches.length !== 1) return;
+            if (isFullMode) return;
+            const curY = e.touches[0].clientY;
+            const dy = curY - touchStartY;
+            const maxScroll = Math.max(0, lyricsEl.scrollHeight - lyricsEl.clientHeight);
+            const atTop = lyricsEl.scrollTop <= 0;
+            const atBottom = lyricsEl.scrollTop >= maxScroll - 0.5;
+
+            if (maxScroll === 0) { e.preventDefault(); return; }
+            if (atTop && dy > 0) e.preventDefault();
+            if (atBottom && dy < 0) e.preventDefault();
+        }
+        lyricsEl.addEventListener('touchstart', onTouchStart, { passive: true });
+        lyricsEl.addEventListener('touchmove', onTouchMove, { passive: false });
+
+        /* no copy/select */
+        function block(e) { e.preventDefault(); }
+        document.addEventListener('copy', block); document.addEventListener('cut', block);
+        document.addEventListener('contextmenu', block); document.addEventListener('selectstart', block);
+
+        /* create line */
+        function createLine(text) {
+            const d = document.createElement('div');
+            if (text.trim() === '') { d.className = 'line empty'; d.textContent = '\u00A0'; }
+            else { d.className = 'line'; d.textContent = text; }
+            return d;
+        }
+
+        /* Remove previous spacer if any */
+        function removeSpacer() {
+            const old = lyricsEl.querySelector('.lyrics-spacer');
+            if (old) old.remove();
+        }
+        /* Append spacer (reliable) */
+        function appendSpacer() {
+            removeSpacer();
+            const sp = document.createElement('div');
+            sp.className = 'lyrics-spacer';
+            lyricsEl.appendChild(sp);
+        }
+
+        /* load txt */
+        async function loadTxt(name) {
+            if (!name) {
+                titleEl.textContent = 'Песня не указана';
+                artistEl.textContent = '';
+                lyricsEl.innerHTML = '<div class="line">Параметр <code>?name=slug</code> отсутствует в URL.</div>';
+                appendSpacer();
+                setFullMode(false);
+                return;
+            }
+
+            const url = `../txt/${encodeURIComponent(name)}.txt`;
+            try {
+                const res = await fetch(url, { cache: 'no-cache' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const raw = await res.text();
+                const allLines = raw.split(/\r?\n/);
+
+                let titleLine = null, artistLine = null, idx = 0;
+                while (idx < allLines.length && (titleLine === null || artistLine === null)) {
+                    const t = allLines[idx].trim();
+                    if (t !== '') {
+                        if (titleLine === null) titleLine = allLines[idx];
+                        else if (artistLine === null) artistLine = allLines[idx];
+                    }
+                    idx++;
+                }
+                if (!titleLine) titleLine = prettyFromSlug(name);
+                if (!artistLine) artistLine = '';
+                const remaining = allLines.slice(idx);
+
+                titleEl.textContent = titleLine;
+                artistEl.textContent = artistLine;
+
+                lyricsEl.innerHTML = '';
+                if (remaining.length === 0) {
+                    lyricsEl.appendChild(createLine('Текст не найден в файле (есть только заголовок/исполнитель).'));
+                    appendSpacer();
+                    setFullMode(false);
+                    return;
+                }
+
+                // render lines
+                remaining.forEach(ln => lyricsEl.appendChild(createLine(ln)));
+
+                // append reliable spacer AFTER lines (ensures scroll can reach bottom)
+                appendSpacer();
+
+                setFullMode(false);
+
+                requestAnimationFrame(setupMarqueeIfNeeded);
+
+            } catch (err) {
+                console.error(err);
+                titleEl.textContent = prettyFromSlug(name);
+                artistEl.textContent = '';
+                lyricsEl.innerHTML = '';
+                lyricsEl.appendChild(createLine('TXT не найден или ошибка загрузки.'));
+                appendSpacer();
+                setFullMode(false);
+            }
+        }
+
+        /* marquee */
+        function setupMarqueeIfNeeded() {
+            const canHover = window.matchMedia('(hover: hover)').matches;
+            function s(wrap, track) {
+                wrap.classList.remove('marquee-active');
+                track.style.removeProperty('--marquee-distance');
+                track.style.removeProperty('--marquee-duration');
+                if (!canHover) return;
+                const wrapW = wrap.clientWidth;
+                const trackW = track.scrollWidth;
+                if (trackW > wrapW + 4) {
+                    const distance = -(trackW - wrapW);
+                    const pxPerSec = 60;
+                    const dur = Math.max(6, Math.abs(distance) / pxPerSec);
+                    track.style.setProperty('--marquee-distance', distance + 'px');
+                    track.style.setProperty('--marquee-duration', dur + 's');
+                    wrap.classList.add('marquee-active');
+                    wrap.addEventListener('mouseenter', () => track.style.animationPlayState = 'paused', { passive: true });
+                    wrap.addEventListener('mouseleave', () => track.style.animationPlayState = 'running', { passive: true });
+                }
+            }
+            s(titleWrap, titleTrack); s(artistWrap, artistTrack);
+        }
+        let resizeTimer = null;
+        window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(setupMarqueeIfNeeded, 200); });
+
+        /* init */
+        (function init() {
+            setFullMode(false);
+            const name = getNameFromUrl();
+            loadTxt(name);
+
+            // watch theme/full changes for background sync
+            const obs = new MutationObserver(() => syncHtmlBackgroundWithBody());
+            obs.observe(bodyEl, { attributes: true, attributeFilter: ['class', 'style'] });
+
+            document.addEventListener('keydown', e => { if (e.key === 'Escape' && isFullMode) setFullMode(false); });
+        })();
+
+        /* helper (duplicate safe) */
+        function getNameFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const raw = params.get('name');
+            if (raw && raw.trim()) return raw.trim();
+            const parts = location.pathname.split('/').filter(Boolean);
+            if (parts.length >= 2 && parts[0].toLowerCase() === 'music') return parts[parts.length - 1];
+            return null;
+        }
+    </script>
+
+    <!-- Service worker registration (path relative from /music/ to root) -->
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("../sw.js").catch(e => console.warn('SW registration failed', e));
+        }
+    </script>
+
+</body>
+
+</html>
