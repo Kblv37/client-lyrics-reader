@@ -1,13 +1,17 @@
 {
   "name": "Rhythm Retreat Lyrics",
   "short_name": "RR Lyrics",
-  "start_url": "/",
+  "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0f0f0f",
   "theme_color": "#0f0f0f",
   "orientation": "portrait",
   "description": "Просмотр текстов песен канала Rhythm Retreat",
+
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
 
   "icons": [
     {
