@@ -219,8 +219,7 @@
       max-width: var(--max-lyrics-width);
       height: calc(100vh - var(--header-height) - 36px);
       display: flex;
-      align-items: flex-start;
-      padding-top: 12vh;
+      align-items: center;
       justify-content: center;
     }
 
@@ -228,7 +227,6 @@
       width: 100%;
       max-width: calc(var(--max-lyrics-width) - 40px);
       padding: 0 4%;
-      padding-bottom: clamp(140px, 22vh, 240px);
       box-sizing: border-box;
       height: 100%;
       overflow-y: auto;
@@ -378,6 +376,16 @@
       background-attachment: fixed;
     }
 
+    /* Lyrics Mode layout fix */
+    body:not(.full-mode) .lyrics-wrap {
+      align-items: flex-start;
+      padding-top: 12vh;
+    }
+
+    /* Spacer после текста */
+    body:not(.full-mode) .lyrics {
+      padding-bottom: clamp(140px, 22vh, 240px);
+    }
   </style>
 </head>
 
