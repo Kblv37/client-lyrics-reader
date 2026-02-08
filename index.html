@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Тексты песен | rhythmRetreat🐳</title>
+
+    <!-- Google font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg1: #111111;
+            --bg2: #1e1e1e;
+            --accent: #1db954;
+            /* Spotify green accent for small touches */
+            --muted: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Общая стилизация */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            background:
+                radial-gradient(circle at 10% 10%, rgba(29, 185, 84, 0.03) 0%, transparent 10%),
+                linear-gradient(180deg, #0b0b0b 0%, #121212 60%, #0b0b0b 100%);
+            color: #fff;
+        }
+
+        .wrap {
+            max-width: 960px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            margin: 0 0 24px 0;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            font-size: 28px;
+        }
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        a.song {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: inherit;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+            transition: transform .18s ease, background .18s ease;
+        }
+
+        a.song:hover {
+            transform: translateY(-4px);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+        }
+
+        .song .meta {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .song .title {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .song .subtitle {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .hint {
+            margin-top: 18px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        @media (max-width:600px) {
+            .wrap {
+                margin: 28px 16px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>Тексты песен</h1>
+
+        <!-- Блок канала -->
+        <div class="list">
+
+            <a class="song" href="https://t.me/rhythmRetre4t" target="_blank" rel="noopener">
+                <div class="meta">
+                    <div class="title">Перейти в Telegram-канал</div>
+                    <div class="subtitle">@rhythmRetre4t</div>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Описание -->
+        <div class="hint">
+            Здесь публикуются тексты песен, используемые и размещаемые в Telegram-канале
+            <b>Rhythm Retreat</b>.<br><br>
+
+            Вы можете открыть нужный текст напрямую по ссылке формата:<br>
+            <code>/music?name=название-песни</code><br><br>
+
+            Пример:<br>
+            <a href="./music?name=linkin-park-numb">
+                <code>/music?name=linkin-park-numb</code>
+            </a><br><br>
+
+            Если текст с указанным названием существует — он откроется автоматически.<br>
+            Если файла нет — будет выведено сообщение об отсутствии контента.<br><br>
+
+            Также ссылки на тексты можно найти под соответствующими песнями
+            в постах Telegram-канала.
+        </div>
+
+    </div>
+</body>
+
+</html>

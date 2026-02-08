@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lyrics | rhythmRetreat🐳</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --header-height: 84px;
+      /* desktop default */
+      --max-lyrics-width: 980px;
+      --side-gap: clamp(16px, 6vw, 120px);
+      --accent: #1db954;
+      --transition: 220ms cubic-bezier(.22, .9, .32, 1);
+    }
+
+    /* MOBILE header reduction */
+    @media (max-width: 720px) {
+      :root {
+        --header-height: 60px;
+        --max-lyrics-width: 720px;
+        --side-gap: 16px;
+      }
+    }
+
+    /* ========== base ========== */
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+
+      /* Important for in-app browsers (Telegram) */
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+
+      background: linear-gradient(180deg, #070707 0%, #121212 60%);
+      color: #fff;
+      transition: background var(--transition), color var(--transition);
+      scroll-behavior: smooth;
+      /* smooth for programmatic scrolls and anchors */
+      background-attachment: fixed;
+      /* avoid white gap */
+    }
+
+    /* Light theme */
+    body.light-theme {
+      background: linear-gradient(180deg, #f6f7f8 0%, #efeef0 60%);
+      color: #1f2326;
+    }
+
+    /* Ensure html background matches body when needed (JS will set inline style for html when in full mode) */
+    html {
+      transition: background var(--transition);
+    }
+
+    /* ========== vignette (fullscreen) ========== */
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      mix-blend-mode: multiply;
+      transition: opacity 240ms ease, background 240ms ease;
+      /* default dark vignette */
+      background-image:
+        radial-gradient(60% 40% at 50% 40%, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.00) 18%),
+        radial-gradient(80% 60% at 50% 50%, rgba(0, 0, 0, 0.0) 0%, rgba(0, 0, 0, 0.45) 55%, rgba(0, 0, 0, 0.85) 100%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.22));
+      opacity: 1;
+    }
+
+    /* light-vignette variant */
+    body.light-theme .vignette {
+      background-image:
+        radial-gradient(60% 40% at 50% 40%, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.00) 18%),
+        radial-gradient(80% 60% at 50% 50%, rgba(255, 255, 255, 0.0) 0%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0.95) 100%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.06));
+      mix-blend-mode: normal;
+      opacity: 0.95;
+    }
+
+    /* In full mode we will reduce vignette opacity via JS/CSS class */
+    .vignette.reduced {
+      opacity: 0.14;
+    }
+
+    /* ========== header (sticky) ========== */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-height);
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px clamp(12px, 2vw, 26px);
+      box-sizing: border-box;
+      backdrop-filter: blur(6px);
+      background: linear-gradient(to bottom, rgba(7, 7, 7, 0.96), rgba(7, 7, 7, 0.55), rgba(7, 7, 7, 0));
+      transition: background var(--transition), padding var(--transition);
+    }
+
+    /* header in light theme */
+    body.light-theme .header {
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0));
+    }
+
+    .header-inner {
+      width: 100%;
+      max-width: var(--max-lyrics-width);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    /* left-aligned title + artist container */
+    .meta-left {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 0;
+      /* for text-overflow */
+      overflow: hidden;
+    }
+
+    /* marquee wrapper (overflow hidden) */
+    .marquee {
+      overflow: hidden;
+      white-space: nowrap;
+      display: block;
+    }
+
+    .marquee-track {
+      display: inline-block;
+      will-change: transform;
+    }
+
+    #title {
+      font-weight: 800;
+      font-size: clamp(16px, 2.4vw, 22px);
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.92);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin: 0;
+    }
+
+    body.light-theme #title {
+      color: rgba(31, 35, 38, 0.92);
+    }
+
+    #artist {
+      margin-top: 4px;
+      font-weight: 600;
+      font-size: clamp(12px, 1.4vw, 14px);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    body.light-theme #artist {
+      color: rgba(31, 35, 38, 0.75);
+    }
+
+    /* ========== controls ========== */
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      color: inherit;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      backdrop-filter: blur(3px);
+      transition: transform .12s ease;
+    }
+
+    body.light-theme .btn {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    /* ========== viewer and lyrics ========== */
+    .viewer {
+      position: relative;
+      z-index: 2;
+      min-height: 100vh;
+      padding-top: calc(var(--header-height) + 8px);
+      /* auto-sync with header height */
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      /* centered in lyrics mode */
+      justify-content: center;
+      padding-left: var(--side-gap);
+      padding-right: var(--side-gap);
+    }
+
+    .lyrics-wrap {
+      width: 100%;
+      max-width: var(--max-lyrics-width);
+      height: calc(100vh - var(--header-height) - 36px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lyrics {
+      width: 100%;
+      max-width: calc(var(--max-lyrics-width) - 40px);
+      padding: 0 4%;
+      box-sizing: border-box;
+      height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      /* inertia */
+      scroll-behavior: smooth;
+      /* smooth */
+      text-align: center;
+
+      /* selection/copy protection (keeps UI intact) */
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* hide scrollbar visually */
+    .lyrics::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      display: none;
+    }
+
+    .lyrics {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    body::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    body {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    /* ========== lines: static, no hover/active effects ========== */
+    .line {
+      display: block;
+      font-weight: 800;
+      font-size: clamp(20px, 5.8vw, 40px);
+      line-height: 1.7;
+      margin: 12px 0;
+      opacity: 1;
+      color: rgba(255, 255, 255, 0.98);
+      white-space: pre-wrap;
+      /* NO transitions, NO transforms, NO hover/active styles */
+    }
+
+    body.light-theme .line {
+      color: rgba(31, 35, 38, 0.95);
+    }
+
+    .line.empty {
+      height: 12px;
+      opacity: 0;
+    }
+
+    /* full-mode adjustments */
+    .full-mode .viewer {
+      align-items: flex-start;
+      padding-top: calc(var(--header-height) + 18px);
+    }
+
+    .full-mode .lyrics-wrap {
+      height: auto;
+      min-height: calc(100vh - var(--header-height) - 36px);
+      margin: 22px 0;
+    }
+
+    .full-mode .lyrics {
+      height: auto;
+      overflow: visible;
+      text-align: left;
+      padding: 0 6%;
+    }
+
+    .full-mode .line {
+      font-weight: 600;
+      font-size: clamp(14px, 2.4vw, 18px);
+      line-height: 1.5;
+      text-align: left;
+    }
+
+    /* marquee animation (JS enables only when needed) */
+    .marquee-track {
+      display: inline-block;
+      transform: translateX(0);
+    }
+
+    .marquee-active .marquee-track {
+      animation-name: marquee;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      animation-direction: alternate;
+      animation-duration: var(--marquee-duration, 8s);
+    }
+
+    @keyframes marquee {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(var(--marquee-distance, -40px));
+      }
+    }
+
+    /* responsive caps */
+    @media (min-width:1400px) {
+      :root {
+        --max-lyrics-width: 980px;
+        --side-gap: clamp(60px, 12vw, 220px);
+      }
+    }
+
+    @media (min-width:1000px) and (max-width:1399px) {
+      :root {
+        --max-lyrics-width: 900px;
+      }
+    }
+
+    @media (max-width:719px) {
+      :root {
+        --max-lyrics-width: 720px;
+        --side-gap: 16px;
+        --header-height: 60px;
+      }
+
+      .line {
+        font-size: clamp(18px, 7.2vw, 34px);
+        line-height: 1.6;
+      }
+
+      #title {
+        font-size: 16px;
+      }
+    }
+
+    /* ensure no white gap on overscroll */
+    html,
+    body {
+      background-attachment: fixed;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="vignette" class="vignette" aria-hidden="true"></div>
+
+  <header class="header" role="banner" aria-hidden="false">
+    <div class="header-inner">
+      <div class="meta-left" id="metaLeft">
+        <div class="marquee" id="titleWrap">
+          <div class="marquee-track" id="titleTrack"><span id="title">Загрузка...</span></div>
+        </div>
+        <div class="marquee" id="artistWrap">
+          <div class="marquee-track" id="artistTrack"><span id="artist"></span></div>
+        </div>
+      </div>
+
+      <div class="controls" id="controls">
+        <button class="btn" id="themeToggle" title="Переключить тему">☀️</button>
+        <button class="btn" id="toggleView" aria-pressed="false">Показать весь текст</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="viewer" id="viewer" role="main" aria-live="polite">
+    <div class="lyrics-wrap">
+      <article id="lyrics" class="lyrics" role="article" aria-label="Текст песни"></article>
+    </div>
+  </main>
+
+  <script>
+    /* ===========================
+       Enhanced /music/index.html
+       - fixes: full-mode light-theme bleed, mobile header height
+       - keeps marquee, theme persistence, copy-block, telegram touch fix
+       =========================== */
+
+    const lyricsEl = document.getElementById('lyrics');
+    const titleEl = document.getElementById('title');
+    const artistEl = document.getElementById('artist');
+    const titleWrap = document.getElementById('titleWrap');
+    const artistWrap = document.getElementById('artistWrap');
+    const titleTrack = document.getElementById('titleTrack');
+    const artistTrack = document.getElementById('artistTrack');
+    const toggleBtn = document.getElementById('toggleView');
+    const themeBtn = document.getElementById('themeToggle');
+    const bodyEl = document.body;
+    const htmlEl = document.documentElement;
+    const vignetteEl = document.getElementById('vignette');
+
+    const THEME_KEY = 'lyrics_theme';
+    let isFullMode = false;
+
+    /* ---------------- Theme with persistence ---------------- */
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        bodyEl.classList.add('light-theme');
+        themeBtn.textContent = '🌙';
+        themeBtn.title = 'Включить тёмную тему';
+      } else {
+        bodyEl.classList.remove('light-theme');
+        themeBtn.textContent = '☀️';
+        themeBtn.title = 'Включить светлую тему';
+      }
+      try { localStorage.setItem(THEME_KEY, theme); } catch (e) { }
+      // ensure html background sync if in full mode
+      syncHtmlBackgroundWithBody();
+    }
+    (function initTheme() {
+      let saved = null;
+      try { saved = localStorage.getItem(THEME_KEY); } catch (e) { }
+      applyTheme(saved === 'light' ? 'light' : 'dark');
+    })();
+    themeBtn.addEventListener('click', () => {
+      const current = bodyEl.classList.contains('light-theme') ? 'light' : 'dark';
+      applyTheme(current === 'light' ? 'dark' : 'light');
+    });
+
+    /* ---------------- Sync html background to avoid dark bleed in full mode ----------------
+       When body is scrollable (full mode) some browsers may show html background.
+       We copy computed body background into html inline style while in full mode.
+    */
+    function syncHtmlBackgroundWithBody() {
+      if (!isFullMode) {
+        htmlEl.style.background = '';
+        return;
+      }
+      const computed = getComputedStyle(bodyEl).background;
+      // apply computed background to html to avoid background differences while scrolling
+      htmlEl.style.background = computed || '';
+    }
+
+    /* ---------------- Full / Lyrics mode ---------------- */
+    function setFullMode(on) {
+      isFullMode = !!on;
+      toggleBtn.setAttribute('aria-pressed', String(isFullMode));
+      toggleBtn.textContent = isFullMode ? 'Lyrics режим' : 'Показать весь текст';
+      if (isFullMode) {
+        bodyEl.classList.add('full-mode');
+        bodyEl.style.overflow = 'auto';
+        vignetteEl.classList.add('reduced');
+        // sync html background so when body scrolls the visual theme stays consistent
+        syncHtmlBackgroundWithBody();
+      } else {
+        bodyEl.classList.remove('full-mode');
+        bodyEl.style.overflow = 'hidden';
+        vignetteEl.classList.remove('reduced');
+        htmlEl.style.background = ''; // clear
+        // reset lyrics scroll position for consistent UX
+        lyricsEl.scrollTop = 0;
+      }
+    }
+    toggleBtn.addEventListener('click', () => setFullMode(!isFullMode));
+
+    /* ---------------- URL parsing & fallback ---------------- */
+    function getNameFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get('name');
+      if (raw && raw.trim()) return raw.trim();
+      const parts = location.pathname.split('/').filter(Boolean);
+      if (parts.length >= 2 && parts[0].toLowerCase() === 'music') return parts[parts.length - 1];
+      return null;
+    }
+    function prettyFromSlug(slug) {
+      if (!slug) return '';
+      const s = decodeURIComponent(slug).replace(/[-_]+/g, ' ');
+      return s.replace(/\b\w/g, ch => ch.toUpperCase());
+    }
+
+    /* ---------------- Touch protection for in-app browsers (Telegram) ---------------- */
+    let touchStartY = 0;
+    function onTouchStart(e) {
+      if (!e.touches || e.touches.length !== 1) return;
+      touchStartY = e.touches[0].clientY;
+    }
+    function onTouchMove(e) {
+      if (!e.touches || e.touches.length !== 1) return;
+      if (isFullMode) return; // allow normal page scroll in full mode
+      const currentY = e.touches[0].clientY;
+      const dy = currentY - touchStartY;
+
+      const maxScroll = Math.max(0, lyricsEl.scrollHeight - lyricsEl.clientHeight);
+      const atTop = lyricsEl.scrollTop <= 0;
+      const atBottom = lyricsEl.scrollTop >= maxScroll - 0.5;
+
+      if (atTop && dy > 0) e.preventDefault();
+      if (atBottom && dy < 0) e.preventDefault();
+    }
+    lyricsEl.addEventListener('touchstart', onTouchStart, { passive: true });
+    lyricsEl.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    /* ---------------- Create line (static, no hover/touch handlers) ---------------- */
+    function createLine(text) {
+      const div = document.createElement('div');
+      if (text.trim() === '') {
+        div.className = 'line empty';
+        div.textContent = '\u00A0';
+      } else {
+        div.className = 'line';
+        div.textContent = text;
+      }
+      return div;
+    }
+
+    /* ---------------- Load TXT & parse ---------------- */
+    async function loadTxt(name) {
+      if (!name) {
+        titleEl.textContent = 'Песня не указана';
+        artistEl.textContent = '';
+        lyricsEl.innerHTML = '<div class="line">Параметр <code>?name=slug</code> отсутствует в URL.</div>';
+        setFullMode(false);
+        return;
+      }
+
+      const url = `../txt/${encodeURIComponent(name)}.txt`;
+      try {
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const raw = await res.text();
+        const allLines = raw.split(/\r?\n/);
+
+        let titleLine = null, artistLine = null, idx = 0;
+        while (idx < allLines.length && (titleLine === null || artistLine === null)) {
+          const t = allLines[idx].trim();
+          if (t !== '') {
+            if (titleLine === null) titleLine = allLines[idx];
+            else if (artistLine === null) artistLine = allLines[idx];
+          }
+          idx++;
+        }
+
+        if (!titleLine) titleLine = prettyFromSlug(name);
+        if (!artistLine) artistLine = '';
+
+        const remaining = allLines.slice(idx);
+
+        titleEl.textContent = titleLine;
+        artistEl.textContent = artistLine;
+
+        lyricsEl.innerHTML = '';
+        if (remaining.length === 0) {
+          lyricsEl.appendChild(createLine('Текст не найден в файле (есть только заголовок/исполнитель).'));
+          setFullMode(false);
+          return;
+        }
+
+        remaining.forEach(ln => lyricsEl.appendChild(createLine(ln)));
+        setFullMode(false);
+
+        // setup marquee for title/artist on desktop if needed
+        requestAnimationFrame(setupMarqueeIfNeeded);
+      } catch (err) {
+        console.error(err);
+        titleEl.textContent = prettyFromSlug(name);
+        artistEl.textContent = '';
+        lyricsEl.innerHTML = '';
+        lyricsEl.appendChild(createLine('TXT не найден или ошибка загрузки.'));
+        setFullMode(false);
+      }
+    }
+
+    /* ---------------- marquee logic (desktop only) ---------------- */
+    function setupMarqueeIfNeeded() {
+      const canHover = window.matchMedia('(hover: hover)').matches;
+      function setup(wrap, track) {
+        // clear previous
+        wrap.classList.remove('marquee-active');
+        track.style.removeProperty('--marquee-distance');
+        track.style.removeProperty('--marquee-duration');
+
+        if (!canHover) return; // don't enable on touch devices
+
+        const wrapW = wrap.clientWidth;
+        const trackW = track.scrollWidth;
+        if (trackW > wrapW + 4) {
+          const distance = -(trackW - wrapW);
+          const pxPerSec = 60; // speed
+          const dur = Math.max(6, Math.abs(distance) / pxPerSec);
+          track.style.setProperty('--marquee-distance', distance + 'px');
+          track.style.setProperty('--marquee-duration', dur + 's');
+          wrap.classList.add('marquee-active');
+          wrap.addEventListener('mouseenter', () => { track.style.animationPlayState = 'paused'; }, { passive: true });
+          wrap.addEventListener('mouseleave', () => { track.style.animationPlayState = 'running'; }, { passive: true });
+        }
+      }
+      setup(titleWrap, titleTrack);
+      setup(artistWrap, artistTrack);
+    }
+    let resizeTimer = null;
+    window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(setupMarqueeIfNeeded, 200); });
+
+    /* ---------------- Copy/selection protection (JS) ---------------- */
+    function blockCopy(e) { e.preventDefault(); }
+    document.addEventListener('copy', blockCopy);
+    document.addEventListener('cut', blockCopy);
+    document.addEventListener('contextmenu', blockCopy);
+    document.addEventListener('selectstart', blockCopy);
+
+    /* ---------------- Initialize ---------------- */
+    (function init() {
+      // default: lyrics mode (body locked)
+      setFullMode(false);
+
+      // load from URL
+      const name = getNameFromUrl();
+      loadTxt(name);
+
+      // keep html background synced if theme or mode changes
+      const observer = new MutationObserver(() => { syncHtmlBackgroundWithBody(); });
+      observer.observe(bodyEl, { attributes: true, attributeFilter: ['class', 'style'] });
+
+      // ESC exit full mode
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isFullMode) setFullMode(false); });
+    })();
+
+    /* helper: getNameFromUrl reused */
+    function getNameFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get('name');
+      if (raw && raw.trim()) return raw.trim();
+      const parts = location.pathname.split('/').filter(Boolean);
+      if (parts.length >= 2 && parts[0].toLowerCase() === 'music') return parts[parts.length - 1];
+      return null;
+    }
+  </script>
+</body>
+
+</html>
