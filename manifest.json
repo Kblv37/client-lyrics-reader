@@ -1,8 +1,8 @@
 {
   "name": "Rhythm Retreat Lyrics",
   "short_name": "RR Lyrics",
-  "start_url": "/index.html",
-  "scope": "/",
+  "start_url": "/music/index.html",
+  "scope": "/music/",
   "display": "standalone",
   "background_color": "#0f0f0f",
   "theme_color": "#0f0f0f",
