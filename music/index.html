@@ -104,7 +104,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 8px clamp(12px, 2vw, 26px);
+      padding: 8px clamp(10px, 2vw, 20px);
       box-sizing: border-box;
       backdrop-filter: blur(6px);
       background: linear-gradient(to bottom, rgba(7, 7, 7, 0.96), rgba(7, 7, 7, 0.55), rgba(7, 7, 7, 0));
@@ -280,11 +280,6 @@
       /* NO transitions, NO transforms, NO hover/active styles */
     }
 
-    body:not(.full-mode) .line:last-child {
-      margin-bottom: clamp(120px, 20vh, 220px);
-    }
-
-
     body.light-theme .line {
       color: rgba(31, 35, 38, 0.95);
     }
@@ -379,6 +374,16 @@
     html,
     body {
       background-attachment: fixed;
+    }
+
+    body:not(.full-mode) .lyrics-wrap {
+      align-items: flex-start;
+      padding-top: 12vh;
+      /* центрирование через отступ */
+    }
+
+    body:not(.full-mode) .lyrics {
+      padding-bottom: clamp(140px, 22vh, 240px);
     }
   </style>
 </head>
